@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Transistor
+Description=Transistor theme wallpaper only
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/transistor
+ScriptFile=/usr/share/plymouth/themes/transistor/transistor.script

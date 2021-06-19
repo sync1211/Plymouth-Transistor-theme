@@ -1,0 +1,200 @@
+
+wallpaper_image = Image("wallpaper.png");
+wallpaper_image_shutdown = Image("shutdown.png");
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+resized_wallpaper_image = wallpaper_image.Scale(screen_width,screen_height);
+resized_wallpaper_image_shutdown = wallpaper_image_shutdown.Scale(screen_width,screen_height);
+
+wallpaper_sprite = Sprite(resized_wallpaper_image);
+wallpaper_sprite.SetZ(-100);
+
+if (Plymouth.GetMode()=="shutdown")
+{
+    wallpaper_sprite = Sprite(resized_wallpaper_image_shutdown);
+    wallpaper_sprite.SetZ(-100);
+}
+
+
+#----------------------------------------- Status Update --------------------------------
+
+#text scroll in reverse (1=on/0=off)
+REVSCROLL="0";
+
+NUM_SCROLL_LINES=13;
+LINE_WIDTH=100;
+
+# width of one character doesnt work------------
+CHAR_WIDTH = 7;
+# height of one character
+CHAR_HEIGHT = 10; 
+#------------------------
+
+msg_color = [1,1,1]; # msg_color is array
+
+#status callback function
+
+fun update_status_callback(sta) {
+  if (sta == "failed") msg_color = [1,0,0];
+  if (sta == "warning") msg_color = [0.8,0.8,0];
+  if (sta == "normal") msg_color = [0.5,0.5,0.5];
+}
+
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+#Initialising text images and their positions
+# 20 is the height (including line spacing) of each line
+
+for (i=0; i < NUM_SCROLL_LINES; i++) {
+  lines[i]= Image.Text("", msg_color[0], msg_color[1], msg_color[2]);
+  message_sprite[i] = Sprite();
+  message_sprite[i].SetPosition(screen_width * 0.14, (screen_height * 0.23) + (i * 20), 10000);
+}
+
+fun StringLength(string) {
+
+  index = 0;
+  str = String(string);
+  while(str.CharAt(index)) index++;
+  return index;
+}
+
+
+
+#fsck label
+fsck_text=Image.Text("", msg_color[0], msg_color[1], msg_color[2]);
+fsck_sprite = Sprite();
+
+#032615 -> 
+fsck_sprite.SetPosition(screen_width * 0.37, (screen_height * 0.36) + (i * 20), 10000);
+fsck_sprite.SetImage(fsck_text);
+
+
+pretext = String("");
+
+#scroll message function
+
+fun scroll_message_callback(text) {
+
+ ##nobreak function 
+
+       #fsck
+       a=0;
+       strs[0]="";
+       strs[1]="";
+       strs[2]="";
+        for (i=0; (String(text).CharAt(i) != ""); i++){
+            local.temp_char = String(text).CharAt(i);
+            if (temp_char != ":")
+                strs[a] += temp_char;
+            else
+                strs[++a] = "";
+            }
+        
+        
+        
+           
+         
+        if ((strs[0]=="fsck")&&(a>=2)){
+         fsck_text=Image.Text("Fsck running on "+strs[1]+" Progress: "+strs[2]+"%", msg_color[0], msg_color[1], msg_color[2]);
+         fsck_sprite.SetImage(fsck_text);
+        }else{
+          fsck_text=Image.Text("", msg_color[0], msg_color[1], msg_color[2]);
+          fsck_sprite.SetImage(fsck_text);
+        }
+        
+
+
+  nobreak = 0;
+   if (text.CharAt(0) == ">") {    # "no linebreak" flag, like "-n"
+       text = text.SubString(1, StringLength(text)); # remove ">" at front
+       nobreak = 1;
+   }
+
+   if ((pretext == "") || (StringLength(text) > 15))  {
+   if (text == ".") return;    # ignore messages of only a single dot
+
+       if (nobreak == 1) pretext = text;
+
+
+
+#Truncate the message if too long
+
+
+   if (StringLength(text) > LINE_WIDTH) {
+     text = text.SubString(0, LINE_WIDTH - 0);
+     text += "...";
+   }
+
+
+
+#Shift message one up
+
+#Reverse scrolling
+if (REVSCROLL == "1"){
+   for (i =  NUM_SCROLL_LINES - 1; i >0; i--) {
+     lines[i] = lines[i-1];
+   }
+   
+#Forward scrolling
+   }else{
+   for (i = 0; i < NUM_SCROLL_LINES - 1; i++) {
+     lines[i] = lines[i+1];
+   }
+   }
+
+
+}
+   else {    # the previous message was flagged to have no linebreak
+
+          // Truncate the message if too long
+       if (StringLength(text) > LINE_WIDTH - 5) { # leave min. 5 for pretext
+         text = text.SubString(0, LINE_WIDTH - 8);
+         text += "...";
+       }
+            
+
+          # Truncate the previous message if too long
+       if (StringLength(pretext) > (LINE_WIDTH - StringLength(text))) {
+         pretext = pretext.SubString(0, LINE_WIDTH - StringLength(text) - 3);
+         pretext += "...";
+       }
+
+       text = pretext + text;
+
+       if (nobreak == 1) pretext = text;
+       else pretext = ">";
+
+   }
+
+
+#Create the image for the latest message
+if (Plymouth.GetMode() == "boot")
+{
+     lines[i] = Image.Text(text, msg_color[0], msg_color[1], msg_color[2]);
+}
+
+#Re-positioning the text images
+
+  for (i = 0; i < NUM_SCROLL_LINES; i++) {
+     message_sprite[i].SetImage(lines[i]);
+   }
+}
+
+ Plymouth.SetUpdateStatusFunction(update_status_callback);
+
+ Plymouth.SetUpdateStatusFunction(scroll_message_callback);
+
+
+#----------------------------------------- Quit --------------------------------
+
+fun quit_callback ()
+{
+ anim.sprite.SetOpacity (1);
+  if (Plymouth.GetMode() == "shutdown") {
+   motif.sprite.SetOpacity(1);
+  }
+}
+
+Plymouth.SetQuitFunction(quit_callback);
